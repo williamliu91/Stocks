@@ -222,58 +222,36 @@ if not st.session_state.portfolio.empty:
         "Transaction Fee": "Total Transaction Fee"         # Renaming "Transaction Fee" column
     })
     
-    # Ensure no missing values in 'Symbol' and 'Shares'
-valid_portfolio = valid_portfolio.dropna(subset=['Symbol', 'Shares'])
+    # Add a check to ensure stock data is available before calculating current value
+    def get_current_value(symbol, shares):
+        if pd.isna(symbol):  # Skip invalid symbols
+            return 0
+        stock_data = get_stock_data(symbol)
+        if stock_data:
+            return round(shares * stock_data['current_price'], 2)  # Round to 2 decimals
+        else:
+            return 0  # Return 0 if stock data is unavailable
 
-# Function to get current stock value
-def get_current_value(symbol, shares):
-    if pd.isna(symbol) or pd.isna(shares):  # Handle missing values
-        return 0
-    stock_data = get_stock_data(symbol)
-    if stock_data is not None and 'current_price' in stock_data:
-        return shares * stock_data['current_price']
-    return 0  # Return 0 if stock data is unavailable or invalid
+    # Apply the current value calculation to the valid portfolio
+    valid_portfolio['Current Value'] = valid_portfolio.apply(
+        lambda row: get_current_value(row['Symbol'], row['Shares']), axis=1
+    )
+    
+     # Round all relevant columns to 2 decimal points to ensure correct display
+    valid_portfolio["The Latest Purchase Price"] = valid_portfolio["The Latest Purchase Price"].round(2)
+    valid_portfolio["Total Transaction Fee"] = valid_portfolio["Total Transaction Fee"].round(2)
+    valid_portfolio["Current Value"] = valid_portfolio["Current Value"].round(2)
+    valid_portfolio["Shares"] = valid_portfolio["Shares"].round(2)
 
-# Apply function to get current value
-current_values = valid_portfolio.apply(
-    lambda row: get_current_value(row['Symbol'], row['Shares']), axis=1
-)
+    # Ensure that figures are displayed with 2 decimal places using string formatting
+    valid_portfolio["The Latest Purchase Price"] = valid_portfolio["The Latest Purchase Price"].apply(lambda x: f"{x:.2f}")
+    valid_portfolio["Total Transaction Fee"] = valid_portfolio["Total Transaction Fee"].apply(lambda x: f"{x:.2f}")
+    valid_portfolio["Current Value"] = valid_portfolio["Current Value"].apply(lambda x: f"{x:.2f}")
+    valid_portfolio["Shares"] = valid_portfolio["Shares"].apply(lambda x: f"{x:.2f}")
 
-# Ensure no missing values in 'Symbol' and 'Shares'
-valid_portfolio = valid_portfolio.dropna(subset=['Symbol', 'Shares'])
-
-# Function to get current stock value
-def get_current_value(symbol, shares):
-    if pd.isna(symbol) or pd.isna(shares):  # Handle missing values
-        return 0
-    stock_data = get_stock_data(symbol)
-    if stock_data is not None and 'current_price' in stock_data:
-        return shares * stock_data['current_price']
-    return 0  # Return 0 if stock data is unavailable or invalid
-
-# Apply function to get current value
-current_values = valid_portfolio.apply(
-    lambda row: get_current_value(row['Symbol'], row['Shares']), axis=1
-)
-
-# Ensure the output length matches the DataFrame length
-if len(current_values) == len(valid_portfolio):
-    valid_portfolio['Current Value'] = current_values
+    # Show the portfolio with the updated column names
+    st.table(valid_portfolio)
 else:
-    print("Mismatch in lengths!")
-    # Optionally, handle this case if needed
+    st.write("No shares in portfolio. Start trading to build your portfolio!")
 
-# Round all relevant columns to 2 decimal points to ensure correct display
-valid_portfolio["The Latest Purchase Price"] = valid_portfolio["The Latest Purchase Price"].round(2)
-valid_portfolio["Total Transaction Fee"] = valid_portfolio["Total Transaction Fee"].round(2)
-valid_portfolio["Current Value"] = valid_portfolio["Current Value"].round(2)
-valid_portfolio["Shares"] = valid_portfolio["Shares"].round(2)
-
-# Ensure that figures are displayed with 2 decimal places using string formatting
-valid_portfolio["The Latest Purchase Price"] = valid_portfolio["The Latest Purchase Price"].apply(lambda x: f"{x:.2f}")
-valid_portfolio["Total Transaction Fee"] = valid_portfolio["Total Transaction Fee"].apply(lambda x: f"{x:.2f}")
-valid_portfolio["Current Value"] = valid_portfolio["Current Value"].apply(lambda x: f"{x:.2f}")
-valid_portfolio["Shares"] = valid_portfolio["Shares"].apply(lambda x: f"{x:.2f}")
-
-# Display the portfolio
-st.write(valid_portfolio)
+st.write(f"💰 **Updated Balance**: **${st.session_state.balance:,.2f}**")
