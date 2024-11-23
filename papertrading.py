@@ -224,18 +224,20 @@ if not st.session_state.portfolio.empty:
     
     # Add a check to ensure stock data is available before calculating current value
     def get_current_value(symbol, shares):
-        if pd.isna(symbol):  # Skip invalid symbols
-            return 0
-        stock_data = get_stock_data(symbol)
-        if stock_data:
-            return round(shares * stock_data['current_price'], 2)  # Round to 2 decimals
-        else:
-            return 0  # Return 0 if stock data is unavailable
+       if pd.isna(symbol):  # Skip invalid symbols
+          return 0
+       stock_data = get_stock_data(symbol)
+       if stock_data:
+          return shares * stock_data['current_price']
+       else:
+          return 0  # Return 0 if stock data is unavailable
+
 
     # Apply the current value calculation to the valid portfolio
     valid_portfolio['Current Value'] = valid_portfolio.apply(
-        lambda row: get_current_value(row['Symbol'], row['Shares']), axis=1
-    )
+    lambda row: get_current_value(row['Symbol'], row['Shares']), axis=1)
+    print(valid_portfolio['Current Value'])  # Debugging line
+
     
      # Round all relevant columns to 2 decimal points to ensure correct display
     valid_portfolio["The Latest Purchase Price"] = valid_portfolio["The Latest Purchase Price"].round(2)
